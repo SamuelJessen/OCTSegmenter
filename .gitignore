@@ -1,0 +1,11 @@
+# Ignore TIFF files
+*.tiff
+
+# Ignore DICOM files
+*.dcm
+
+# Ignore MATLAB files
+*.mat
+
+# Ignore folders starting with 'data'
+data*/
