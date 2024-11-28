@@ -16,12 +16,29 @@ class AttentionBlock(nn.Module):
         return x * attention
 
 
-class ResNetUNet(nn.Module):
-    def __init__(self, output_channels=1):
-        super(ResNetUNet, self).__init__()
+class ResNetUNetWithAttention(nn.Module):
+    def __init__(
+        self,
+        output_channels=1,
+        freeze_entire_backbone=False,
+        freeze_initial_layers=False,
+    ):
+        super(ResNetUNetWithAttention, self).__init__()
 
         self.base_model = models.resnet34(pretrained=True)
         self.base_layers = list(self.base_model.children())
+
+        if freeze_entire_backbone:
+            # Freeze the entire backbone
+            for param in self.base_model.parameters():
+                param.requires_grad = False
+
+        if freeze_initial_layers:
+            # Freeze only the initial layers
+            for param in self.layer0.parameters():
+                param.requires_grad = False
+            for param in self.layer1.parameters():
+                param.requires_grad = False
 
         self.layer0 = nn.Sequential(*self.base_layers[:3])  # Initial Conv layer
         self.layer1 = nn.Sequential(*self.base_layers[3:5])  # MaxPool and Layer1
@@ -90,26 +107,6 @@ class ResNetUNet(nn.Module):
         out = self.final_conv(d0)
 
         return torch.sigmoid(out)
-
-
-class ResNetUNetFrozenBackbone(ResNetUNet):
-    def __init__(self, output_channels=1):
-        super(ResNetUNetFrozenBackbone, self).__init__(output_channels)
-
-        # Freeze the entire backbone
-        for param in self.base_model.parameters():
-            param.requires_grad = False
-
-
-class ResNetUNetFrozenInitialLayers(ResNetUNet):
-    def __init__(self, output_channels=1):
-        super(ResNetUNetFrozenInitialLayers, self).__init__(output_channels)
-
-        # Freeze only the initial layers
-        for param in self.layer0.parameters():
-            param.requires_grad = False
-        for param in self.layer1.parameters():
-            param.requires_grad = False
 
 
 class UnetNoPretraining(nn.Module):
