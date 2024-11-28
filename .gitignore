@@ -12,3 +12,6 @@ data*/
 
 # Ignore folder starting with .neptune
 .neptune*/
+
+# Ignore pycache
+*.pyc
