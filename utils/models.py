@@ -25,7 +25,7 @@ class ResNetUNetWithAttention(nn.Module):
     ):
         super(ResNetUNetWithAttention, self).__init__()
 
-        self.base_model = models.resnet34(pretrained=True)
+        self.base_model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1)
         self.base_layers = list(self.base_model.children())
 
         if freeze_entire_backbone:
