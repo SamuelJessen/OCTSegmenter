@@ -9,3 +9,9 @@
 
 # Ignore folders starting with 'data'
 data*/
+
+# Ignore folder starting with .neptune
+.neptune*/
+
+# Ignore pycache
+*.pyc
