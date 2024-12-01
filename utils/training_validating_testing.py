@@ -51,7 +51,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
 
     if config["use_amp"]:
-            scaler = torch.cuda.amp.GradScaler()
+        scaler = torch.amp.GradScaler("cuda")
     
     for epoch in range(epochs):
         net.train()
