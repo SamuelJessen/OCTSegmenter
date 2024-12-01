@@ -56,8 +56,8 @@ val_size = int(0.1 * len(dataset))
 train_size = len(dataset) - val_size
 train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-trainloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-valloader = DataLoader(val_dataset, batch_size=4, shuffle=False)
+trainloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+valloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 # Get a batch of training data
 train_images, train_masks, _, _ = next(iter(trainloader))

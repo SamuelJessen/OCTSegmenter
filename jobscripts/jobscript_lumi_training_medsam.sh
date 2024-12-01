@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=8G
 #SBATCH --partition=dev-g
-#SBATCH --gpus-per-task=1
+#SBATCH --gpus-per-task=8
 
 # Run the job
 srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter:/mnt -B /flash/project_465001544/:/data cotainrImage.sif python /mnt/lumi_training_medsam.py

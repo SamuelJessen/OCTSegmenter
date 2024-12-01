@@ -131,13 +131,13 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
     config = {
         "root_dir": root_dir,
         "origin_dir": origin_dir,
-        "lr": tune.loguniform(1e-6, 1e-2),
+        "lr": tune.choice([1e-2]),
         "epochs": epochs,
         "smoke_test": smoke_test,
         "batch_size": tune.choice([4]),
         "optimizer": tune.grid_search(["AdamW", "SGD", "RMSprop"]),
         "folds": folds,
-        "patience": 20,
+        "patience": 15,
         "loss_function": tune.grid_search(["DiceLoss", "BCELoss", "DiceBCELoss"]),
         "model": tune.grid_search(["AttentionUnet", "Unet", "DeepLabV3+", "MedSam"]),
         "freeze_encoder": tune.grid_search([True, False]),
@@ -163,7 +163,7 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(train_model),
-            resources={"cpu": 2, "gpu": gpus_per_trial}
+            resources={"cpu": 8, "gpu": gpus_per_trial}
         ),
         tune_config=tune.TuneConfig(
             metric="dice_loss",
@@ -186,4 +186,4 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
 
     test_best_model(best_result, origin_dir)
 
-main(num_samples=2, gpus_per_trial=1, epochs=2, smoke_test=True, folds=5)
+main(num_samples=1, gpus_per_trial=8, epochs=2, smoke_test=True, folds=5)

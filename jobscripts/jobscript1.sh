@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=1G
-#SBATCH --partition=dev-g
+#SBATCH --partition=small-g
 #SBATCH --gpus-per-task=1
 
 # Change to the directory containing the script
@@ -20,4 +20,4 @@ ls -l
 
 # Run the job with Singularity
 # Use -B to bind the directory so that the container can access the files correctly
-srun /usr/bin/singularity exec -B /projappl/project_465001544:/projappl/project_465001544 cotainrImage.sif python /projappl/project_465001544/training_loop.py
+srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter/scripts:/mnt -B /flash/project_465001544/:/data /projappl/project_465001544/OCTSegmenter/cotainrImage.sif python /mnt/hello.py
