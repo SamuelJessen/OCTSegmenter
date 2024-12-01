@@ -2,17 +2,19 @@ import os
 import torch
 import neptune
 import tempfile
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from utils.lossfunctions import DiceLoss
 from utils.oct_dataset import OCTDataset
 from utils.models import ResNetUNetWithAttention, MedSAM
+from utils.data_augmentation import DataAugmentTransform
 from ray import train
 from ray.train import Checkpoint
 from PIL import Image
 from torchvision import transforms
 import segmentation_models_pytorch as smp
 from segment_anything import sam_model_registry
+
 
 def train_and_validate(root_dir, config, splits, fold, transform, optimizer, criterion, net, device, trial_id):
     # Initialize Neptune run
@@ -191,7 +193,23 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
 
         train_indices, val_indices = splits[fold]
 
-        train_dataset = OCTDataset(root_dir, indices=train_indices, transform=transform)
+        train_dataset = OCTDataset(root_dir, indices=train_indices, train=True, is_gentuity=True, transform=transform)
+
+        # Apply augmentation to the training dataset
+        sample_size = len(train_dataset_gentuity)//3
+
+        # Instantiate the combined transform
+        data_augment_transform = DataAugmentTransform()
+
+        # Randomly sample a subset of the training dataset
+        aug_indices = np.random.choice(train_indices, sample_size, replace=False)
+        
+        # Create a new dataset for augmentation
+        aug_dataset = OCTDataset(root_dir, indices=aug_indices, train=True, is_gentuity=True, transform=data_augment_transform, for_augmentation=True)
+
+        # Combine the original and augmented datasets
+        train_dataset = ConcatDataset([train_dataset, aug_dataset])
+
         val_dataset = OCTDataset(root_dir, indices=val_indices, transform=transform)
 
         trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
