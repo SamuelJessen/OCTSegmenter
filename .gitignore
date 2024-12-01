@@ -15,3 +15,12 @@ data*/
 
 # Ignore pycache
 *.pyc
+
+# Ignore .sif
+*.sif
+
+# Ignore .out
+.out
+
+# Ignore .out
+.out
