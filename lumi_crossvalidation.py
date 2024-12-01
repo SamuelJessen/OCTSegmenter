@@ -221,7 +221,7 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
         "lr": 1e-4,
         "epochs": epochs,
         "smoke_test": smoke_test,
-        "batch_size": tune.choice([2]),
+        "batch_size": tune.choice([4]),
         "optimizer": tune.grid_search(["Adam", "SGD", "RMSprop"]),
         "folds": folds,
         "fold": tune.grid_search(list(range(folds))),

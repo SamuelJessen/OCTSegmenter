@@ -14,18 +14,18 @@ from torchvision import transforms
 import segmentation_models_pytorch as smp
 from segment_anything import sam_model_registry
 
-def train_and_validate(root_dir, config, splits, fold, transform, optimizer, criterion, net, device, medsam=False):
+def train_and_validate(root_dir, config, splits, fold, transform, optimizer, criterion, net, device, trial_id):
     # Initialize Neptune run
     run = neptune.init_run(
         project="OCTAA/OCTSegmenter",
         api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2MGU2NGNjMi0yNWE0LTRjNzgtOGNlNS1hZDdkMjJhYzYxMWUifQ==",
-        name="training_and_validation",
+        name=f"trial_{str(trial_id)}",
         tags="terumo",
     )  # your credentials
 
     run["sys/group_tags"].add([
         str(config["model"]),
-        str(config["freeze_encoder"]),
+        f"Freezing: {str(config['freeze_encoder'])}",
         str(config["loss_function"]), 
         str(config["optimizer"]), 
         f"Fold: {str(fold)}"
@@ -165,7 +165,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     print("Finished Training")
 
 
-def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer, criterion, net, device, medsam=False):
+def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer, criterion, net, device, trial_id):
     for fold in range(folds):
         # Train and validate the model
         print(f"Training on fold {fold+1} out of {folds}")
@@ -174,13 +174,13 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         run = neptune.init_run(
             project="OCTAA/OCTSegmenter",
             api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2MGU2NGNjMi0yNWE0LTRjNzgtOGNlNS1hZDdkMjJhYzYxMWUifQ==",
-            name="training_and_validation",
+            name=f"trial_{str(trial_id)}",
             tags="terumo",
         )  # your credentials
 
         run["sys/group_tags"].add([
             str(config["model"]),
-            str(config["freeze_encoder"]),
+            f"Freezing: {str(config['freeze_encoder'])}",
             str(config["loss_function"]), 
             str(config["optimizer"]), 
             f"Fold: {str(fold)}"
