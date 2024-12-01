@@ -49,6 +49,9 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     no_improvement_epochs = 0
     patience = config["patience"]
     scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
+
+    if config["use_amp"]:
+            scaler = torch.cuda.amp.GradScaler()
     
     for epoch in range(epochs):
         net.train()
@@ -67,20 +70,47 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                 bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
 
                 optimizer.zero_grad()
-                outputs = net(images, bboxes)
-                loss = criterion(outputs, masks)
-                loss.backward()
-                optimizer.step()
+                
+                if config["use_amp"]:
+                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                        outputs = net(images, bboxes)
+                        loss = criterion(outputs, masks)
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+
+                else:    
+                    outputs = net(images, bboxes)
+                    loss = criterion(outputs, masks)
+                    loss.backward()
+                    optimizer.step()
+                
+                optimizer.zero_grad()
 
             else:
-                images, masks, _, _ = data
-                images, masks = images.to(device), masks.to(device)
+                if config["use_amp"]:
+                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                        images, masks, _, _ = data
+                        images, masks = images.to(device), masks.to(device)
 
+                        optimizer.zero_grad()
+                        outputs = net(images)
+                        loss = criterion(outputs, masks)
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+
+                else:
+                    images, masks, _, _ = data
+                    images, masks = images.to(device), masks.to(device)
+
+                    optimizer.zero_grad()
+                    outputs = net(images)
+                    loss = criterion(outputs, masks)
+                    loss.backward()
+                    optimizer.step()
+                
                 optimizer.zero_grad()
-                outputs = net(images)
-                loss = criterion(outputs, masks)
-                loss.backward()
-                optimizer.step()
 
             running_loss += loss.item() * images.size(0)
 
@@ -220,6 +250,9 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         no_improvement_epochs = 0
         patience = config["patience"]
         scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
+
+        if config["use_amp"]:
+            scaler = torch.cuda.amp.GradScaler()
         
         for epoch in range(epochs):
             net.train()
@@ -231,27 +264,54 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
                     images, masks, _, _ = data
                     images, masks = images.to(device), masks.to(device)
 
-                     # Get image dimensions
+                    # Get image dimensions
                     batch_size, _, height, width = images.size()
 
                     # Create bounding boxes that cover the whole image
                     bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
 
                     optimizer.zero_grad()
-                    outputs = net(images, bboxes)
-                    loss = criterion(outputs, masks)
-                    loss.backward()
-                    optimizer.step()
+
+                    if config["use_amp"]:
+                        with torch.autocast(device_type="cuda", dtype=torch.float16):
+                            outputs = net(images, bboxes)
+                            loss = criterion(outputs, masks)
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)
+                        scaler.update()
+
+                    else:    
+                        outputs = net(images, bboxes)
+                        loss = criterion(outputs, masks)
+                        loss.backward()
+                        optimizer.step()
+                    
+                    optimizer.zero_grad()
 
                 else:
-                    images, masks, _, _ = data
-                    images, masks = images.to(device), masks.to(device)
+                    if config["use_amp"]:
+                        with torch.autocast(device_type="cuda", dtype=torch.float16):
+                            images, masks, _, _ = data
+                            images, masks = images.to(device), masks.to(device)
 
+                            optimizer.zero_grad()
+                            outputs = net(images)
+                            loss = criterion(outputs, masks)
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)
+                        scaler.update()
+
+                    else:    
+                        images, masks, _, _ = data
+                        images, masks = images.to(device), masks.to(device)
+
+                        optimizer.zero_grad()
+                        outputs = net(images)
+                        loss = criterion(outputs, masks)
+                        loss.backward()
+                        optimizer.step()
+                    
                     optimizer.zero_grad()
-                    outputs = net(images)
-                    loss = criterion(outputs, masks)
-                    loss.backward()
-                    optimizer.step()
 
                 running_loss += loss.item() * images.size(0)
 
