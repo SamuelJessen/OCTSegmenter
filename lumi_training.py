@@ -195,7 +195,7 @@ ax[2].axis('off')
 
 plt.show()
 
-root_dir = "data/data_gentuity"
+root_dir = "/data/data_gentuity"
 testset = OCTDataset(root_dir, train=False, is_gentuity=True, transform=transform)
 testloader = DataLoader(testset, batch_size=4, shuffle=False)
 

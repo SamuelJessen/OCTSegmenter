@@ -22,5 +22,5 @@ data*/
 # Ignore .out
 .out
 
-# Ignore .out
-.out
+# Ignore files starting with slurm-
+slurm-*
