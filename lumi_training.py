@@ -29,7 +29,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Prepare datasets for the fold
 transform = transforms.Compose([
-    transforms.Resize((256, 256), interpolation=Image.NEAREST),
+    transforms.Resize((1024, 1024), interpolation=Image.NEAREST),
     transforms.ToTensor(),
 ])
 
@@ -60,8 +60,10 @@ train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size,
 
 print(len(train_dataset))
 
-trainloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-valloader = DataLoader(val_dataset, batch_size=4, shuffle=False)
+batch_size = 64
+
+trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 # Get a batch of training data
 train_images, train_masks, _, _ = next(iter(trainloader))
@@ -102,7 +104,24 @@ print("Unique values in val masks:", torch.unique(val_masks))
 # Move the model to the appropriate device
 net.to(device)
 
-epochs = 10
+# Function to log GPU memory usage
+def log_gpu_memory_usage(step):
+    current_usage = torch.cuda.memory_allocated()
+    max_usage = torch.cuda.max_memory_allocated()
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    print(f"[Step {step}] Current GPU memory usage: {current_usage / 1024**2:.2f} MB")
+    print(f"[Step {step}] Max GPU memory usage: {max_usage / 1024**2:.2f} MB")
+    print(f"[Step {step}] Total GPU memory: {total_memory / 1024**2:.2f} MB")
+    # Reset the peak memory stats for accurate logging
+    torch.cuda.reset_peak_memory_stats()
+    reserved_memory = torch.cuda.memory_reserved()
+    print(f"[Step {step}] Reserved GPU memory: {reserved_memory / 1024**2:.2f} MB")
+
+epochs = 2
+
+torch.cuda.empty_cache()
+
+scaler = torch.amp.GradScaler("cuda")
 
 for epoch in range(epochs):
     net.train()
@@ -110,14 +129,18 @@ for epoch in range(epochs):
     correct_train_predictions = 0
     total_train_pixels = 0
     progress_bar = tqdm(trainloader, desc=f"Epoch {epoch+1}/{epochs}", leave=False)
-    for images, masks, _, _ in progress_bar:
+    for step, (images, masks, _, _) in enumerate(progress_bar):
         images, masks = images.to(device), masks.to(device)
 
         optimizer.zero_grad()
-        outputs = net(images)
-        loss = criterion(outputs, masks)
-        loss.backward()
-        optimizer.step()
+        with torch.autocast(device_type="cuda", dtype=torch.float16):
+            outputs = net(images)
+            loss = criterion(outputs, masks)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        log_gpu_memory_usage(step)
 
         running_loss += loss.item() * images.size(0)
         progress_bar.set_postfix(loss=loss.item())
@@ -158,6 +181,9 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}], Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
 
     # Set the model to evaluation mode
+
+torch.cuda.empty_cache()
+
 net.eval()
 
 # Load a sample image from the dataset
@@ -197,7 +223,7 @@ plt.show()
 
 root_dir = "/data/data_gentuity"
 testset = OCTDataset(root_dir, train=False, is_gentuity=True, transform=transform)
-testloader = DataLoader(testset, batch_size=4, shuffle=False)
+testloader = DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 net.eval()
 net.to(device)

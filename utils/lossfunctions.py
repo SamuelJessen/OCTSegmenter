@@ -24,7 +24,7 @@ class DiceLoss(nn.Module):
 class DiceBCELoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(DiceBCELoss, self).__init__()
-        self.bce_loss = nn.BCELoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
 
     def forward(self, inputs, targets, smooth=1):
         # flatten label and prediction tensors

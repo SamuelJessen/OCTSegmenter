@@ -30,13 +30,28 @@ MedSAM_CKPT_PATH = "/data/medsam/medsam_vit_b.pth"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+# Function to log GPU memory usage
+def log_gpu_memory_usage(step):
+    current_usage = torch.cuda.memory_allocated()
+    max_usage = torch.cuda.max_memory_allocated()
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    print(f"[Step {step}] Current GPU memory usage: {current_usage / 1024**2:.2f} MB")
+    print(f"[Step {step}] Max GPU memory usage: {max_usage / 1024**2:.2f} MB")
+    print(f"[Step {step}] Total GPU memory: {total_memory / 1024**2:.2f} MB")
+    # Reset the peak memory stats for accurate logging
+    torch.cuda.reset_peak_memory_stats()
+    reserved_memory = torch.cuda.memory_reserved()
+    print(f"[Step {step}] Reserved GPU memory: {reserved_memory / 1024**2:.2f} MB")
+
 # Prepare datasets for the fold
 transform = transforms.Compose([
     transforms.Resize((1024, 1024), interpolation=Image.NEAREST),
     transforms.ToTensor(),
 ])
 
-sam_model = sam_model_registry['vit_b'](checkpoint=MedSAM_CKPT_PATH)
+log_gpu_memory_usage("initial")
+
+sam_model = sam_model_registry['vit_b'](checkpoint=MedSAM_CKPT_PATH).to(device)
 net = MedSAM(
         image_encoder=sam_model.image_encoder,
         mask_decoder=sam_model.mask_decoder,
@@ -44,11 +59,16 @@ net = MedSAM(
     ).to(device)
 net.train()
 
+# Log initial GPU memory usage
+log_gpu_memory_usage("after model initialization")
+
 # Define loss and optimizer
 optimizer = optim.Adam(net.parameters(), lr=1e-4)
 
 # Define the loss function
 criterion = DiceBCELoss()
+
+batch_size = 6
 
 # Split the dataset into training and validation sets
 dataset = OCTDataset(root_dir, transform=transform)
@@ -56,8 +76,10 @@ val_size = int(0.1 * len(dataset))
 train_size = len(dataset) - val_size
 train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-trainloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-valloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+log_gpu_memory_usage("after creating dataloaders")
 
 # Get a batch of training data
 train_images, train_masks, _, _ = next(iter(trainloader))
@@ -68,26 +90,26 @@ train_images, train_masks = train_images.to(device), train_masks.to(device)
 val_images, val_masks = val_images.to(device), val_masks.to(device)
 
 # Plot training images and masks
-fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-for i in range(4):
-    axes[0, i].imshow(train_images[i].permute(1, 2, 0).cpu().numpy())
-    axes[0, i].set_title(f"Train Image {i+1}")
-    axes[0, i].axis('off')
-    axes[1, i].imshow(train_masks[i].squeeze().cpu().numpy(), cmap='gray')
-    axes[1, i].set_title(f"Train Mask {i+1}")
-    axes[1, i].axis('off')
-plt.show()
+# fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+# for i in range(4):
+#     axes[0, i].imshow(train_images[i].permute(1, 2, 0).cpu().numpy())
+#     axes[0, i].set_title(f"Train Image {i+1}")
+#     axes[0, i].axis('off')
+#     axes[1, i].imshow(train_masks[i].squeeze().cpu().numpy(), cmap='gray')
+#     axes[1, i].set_title(f"Train Mask {i+1}")
+#     axes[1, i].axis('off')
+# plt.show()
 
-# Plot validation images and masks
-fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-for i in range(4):
-    axes[0, i].imshow(val_images[i].permute(1, 2, 0).cpu().numpy())
-    axes[0, i].set_title(f"Val Image {i+1}")
-    axes[0, i].axis('off')
-    axes[1, i].imshow(val_masks[i].squeeze().cpu().numpy(), cmap='gray')
-    axes[1, i].set_title(f"Val Mask {i+1}")
-    axes[1, i].axis('off')
-plt.show()
+# # Plot validation images and masks
+# fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+# for i in range(4):
+#     axes[0, i].imshow(val_images[i].permute(1, 2, 0).cpu().numpy())
+#     axes[0, i].set_title(f"Val Image {i+1}")
+#     axes[0, i].axis('off')
+#     axes[1, i].imshow(val_masks[i].squeeze().cpu().numpy(), cmap='gray')
+#     axes[1, i].set_title(f"Val Mask {i+1}")
+#     axes[1, i].axis('off')
+# plt.show()
 
 # Print unique values in images and masks
 print("Unique values in train images:", torch.unique(train_images))
@@ -98,7 +120,13 @@ print("Unique values in val masks:", torch.unique(val_masks))
 # Move the model to the appropriate device
 net.to(device)
 
-epochs = 10
+torch.cuda.empty_cache()
+
+scaler = torch.amp.GradScaler("cuda")
+
+epochs = 2
+
+log_gpu_memory_usage("before training loop")
 
 for epoch in range(epochs):
     net.train()
@@ -106,20 +134,26 @@ for epoch in range(epochs):
     correct_train_predictions = 0
     total_train_pixels = 0
     progress_bar = tqdm(trainloader, desc=f"Epoch {epoch+1}/{epochs}", leave=False)
-    for images, masks, _, _ in progress_bar:
+    for step, (images, masks, _, _) in enumerate(progress_bar):
         images, masks = images.to(device), masks.to(device)
 
         # Get image dimensions
         batch_size, channels, height, width = images.shape
 
         # Create bounding boxes that cover the whole image
-        bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
+        bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float16).unsqueeze(1).to(device)
+
+        log_gpu_memory_usage("before forward pass")
 
         optimizer.zero_grad()
-        outputs = net(images, bboxes)
-        loss = criterion(outputs, masks)
-        loss.backward()
-        optimizer.step()
+        with torch.autocast(device_type="cuda", dtype=torch.float16):
+            outputs = net(images, bboxes)
+            loss = criterion(outputs, masks)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        log_gpu_memory_usage(step)
 
         running_loss += loss.item() * images.size(0)
         progress_bar.set_postfix(loss=loss.item())
@@ -166,6 +200,8 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}], Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
 
  # Set the model to evaluation mode
+torch.cuda.empty_cache()
+
 net.eval()
 
 # Load a sample image from the dataset
@@ -208,7 +244,7 @@ plt.show()
 
 root_dir = "/data/data_gentuity"
 testset = OCTDataset(root_dir, train=False, is_gentuity=True, transform=transform)
-testloader = DataLoader(testset, batch_size=4, shuffle=False)
+testloader = DataLoader(testset, batch_size=batch_size, shuffle=False)
 
 net.eval()
 net.to(device)

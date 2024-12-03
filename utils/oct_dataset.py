@@ -9,11 +9,11 @@ class OCTDataset(Dataset):
     def __init__(
         self, root_dir, indices=None, train=True, is_gentuity=False, transform=None, for_augmentation=False
     ):
-
         self.root_dir = Path(root_dir)
         self.train = train
         self.is_gentuity = is_gentuity
         self.transform = transform
+        self.for_augmentation = for_augmentation
 
         if self.is_gentuity:
             # Gentuity dataset has separate train and test folders
