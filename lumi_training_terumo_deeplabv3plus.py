@@ -144,7 +144,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
         "patience": 10,
         "loss_function": tune.grid_search(["DiceBCELoss"]),
         #"model": tune.grid_search(["AttentionUnet", "Unet", "DeepLabV3+", "MedSam"]),
-        "model": tune.grid_search(["Unet"]),
+        "model": tune.grid_search(["DeepLabV3+"]),
         "freeze_encoder": tune.grid_search([False]),
         "use_amp": True,
         "cpus_per_trial": cpus_per_trial,
@@ -193,7 +193,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
 
     #test_best_model(best_result, origin_dir)
 
-main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=1, smoke_test=True, folds=10)
+main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=100, smoke_test=False, folds=10)
 
 end_time = time.time()
 elapsed_time = end_time - start_time

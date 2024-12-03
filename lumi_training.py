@@ -14,6 +14,9 @@ from utils.lossfunctions import DiceLoss, DiceBCELoss
 from tqdm import tqdm
 import torch.optim as optim
 import segmentation_models_pytorch as smp 
+import time
+
+start_time = time.time()
 
 # # Set up argument parser to accept root_dir
 # parser = argparse.ArgumentParser()
@@ -23,7 +26,7 @@ import segmentation_models_pytorch as smp
 # root_dir = args.root_dir
 # print(f"Root directory: {root_dir}")
 
-root_dir = "/data/data_terumo_smoke_test"
+root_dir = "/data/data_terumo"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -60,10 +63,10 @@ train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size,
 
 print(len(train_dataset))
 
-batch_size = 64
+batch_size = 6
 
-trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
 
 # Get a batch of training data
 train_images, train_masks, _, _ = next(iter(trainloader))
@@ -184,6 +187,12 @@ for epoch in range(epochs):
 
 torch.cuda.empty_cache()
 
+# Your existing code here
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Total time spent: {elapsed_time:.2f} seconds")
+
 net.eval()
 
 # Load a sample image from the dataset
@@ -278,3 +287,4 @@ ax[2].set_title("Predicted Mask")
 ax[2].axis('off')
 
 plt.show()
+

@@ -17,6 +17,10 @@ import segmentation_models_pytorch as smp
 from segment_anything import sam_model_registry 
 from utils.models import MedSAM
 
+import time
+
+start_time = time.time()
+
 # # Set up argument parser to accept root_dir
 # parser = argparse.ArgumentParser()
 # parser.add_argument('--root_dir', type=str, required=True, help="Path to the data directory")
@@ -25,7 +29,7 @@ from utils.models import MedSAM
 # root_dir = args.root_dir
 # print(f"Root directory: {root_dir}")
 
-root_dir = "/data/data_terumo_smoke_test"
+root_dir = "/data/data_terumo"
 MedSAM_CKPT_PATH = "/data/medsam/medsam_vit_b.pth"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -68,7 +72,7 @@ optimizer = optim.Adam(net.parameters(), lr=1e-4)
 # Define the loss function
 criterion = DiceBCELoss()
 
-batch_size = 6
+batch_size = 4
 
 # Split the dataset into training and validation sets
 dataset = OCTDataset(root_dir, transform=transform)
@@ -76,8 +80,8 @@ val_size = int(0.1 * len(dataset))
 train_size = len(dataset) - val_size
 train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+trainloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+valloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
 
 log_gpu_memory_usage("after creating dataloaders")
 
@@ -202,6 +206,10 @@ for epoch in range(epochs):
  # Set the model to evaluation mode
 torch.cuda.empty_cache()
 
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Total time spent: {elapsed_time:.2f} seconds")
+
 net.eval()
 
 # Load a sample image from the dataset
@@ -244,7 +252,7 @@ plt.show()
 
 root_dir = "/data/data_gentuity"
 testset = OCTDataset(root_dir, train=False, is_gentuity=True, transform=transform)
-testloader = DataLoader(testset, batch_size=batch_size, shuffle=False)
+testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=8)
 
 net.eval()
 net.to(device)

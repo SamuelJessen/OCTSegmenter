@@ -41,8 +41,8 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     train_dataset = OCTDataset(root_dir, indices=train_indices, transform=transform)
     val_dataset = OCTDataset(root_dir, indices=val_indices, transform=transform)
 
-    trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
-    valloader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False)
+    trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["cpus_per_trial"])
+    valloader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["cpus_per_trial"])
 
     best_val_loss = float("inf")
     epochs = config["epochs"]
@@ -53,6 +53,8 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     if config["use_amp"]:
         scaler = torch.amp.GradScaler("cuda")
     
+    torch.cuda.empty_cache()
+
     for epoch in range(epochs):
         net.train()
         running_loss = 0.0
@@ -67,7 +69,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                 batch_size, _, height, width = images.size()
 
                 # Create bounding boxes that cover the whole image
-                bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
+                bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float16).unsqueeze(1).to(device)
 
                 optimizer.zero_grad()
                 
@@ -140,7 +142,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                     batch_size, _, height, width = images.size()
 
                     # Create bounding boxes that cover the whole image
-                    bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
+                    bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float16).unsqueeze(1).to(device)
 
                     outputs = net(images, bboxes)
                     loss = criterion(outputs, masks)
@@ -194,6 +196,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
             break
 
     run.stop()
+    torch.cuda.empty_cache()
     print("Finished Training")
 
 
@@ -242,17 +245,19 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
 
         val_dataset = OCTDataset(root_dir, indices=val_indices, transform=transform)
 
-        trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
-        valloader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False)
+        trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["cpus_per_trial"])
+        valloader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["cpus_per_trial"])
 
         best_val_loss = float("inf")
         epochs = config["epochs"]
         no_improvement_epochs = 0
         patience = config["patience"]
-        scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
+        scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=5)
 
         if config["use_amp"]:
             scaler = torch.amp.GradScaler("cuda")
+        
+        torch.cuda.empty_cache()
         
         for epoch in range(epochs):
             net.train()
@@ -395,6 +400,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
                 break
 
         run.stop()
+        torch.cuda.empty_cache()
         print("Finished Training")
 
 
@@ -442,7 +448,7 @@ def test_best_model(best_result, root_dir):
                 image_encoder=sam_model.image_encoder,
                 mask_decoder=sam_model.mask_decoder,
                 prompt_encoder=sam_model.prompt_encoder,
-            ).to(device)
+            )
 
     elif best_result.config["model"] == "AttentionUnet":
         net = ResNetUNetWithAttention()
@@ -451,6 +457,8 @@ def test_best_model(best_result, root_dir):
 
     model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
     net.load_state_dict(model_state)
+    net.to(device)
+    net.eval()
 
     transform = transforms.Compose([
         transforms.Resize((1024, 1024), interpolation=Image.NEAREST),
@@ -460,7 +468,7 @@ def test_best_model(best_result, root_dir):
     root_dir = root_dir + "/data_gentuity"
 
     test_dataset = OCTDataset(root_dir, transform=transform, train=False, is_gentuity=True)
-    testloader = DataLoader(test_dataset, batch_size=best_result.config["batch_size"], shuffle=False)
+    testloader = DataLoader(test_dataset, batch_size=best_result.config["batch_size"], shuffle=False, num_workers=best_result.config["cpus_per_trial"])
 
     criterion = DiceLoss()
 
