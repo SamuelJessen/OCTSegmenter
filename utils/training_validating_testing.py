@@ -82,7 +82,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                     scaler.unscale_(optimizer)
 
                     # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
                     scaler.step(optimizer)
                     scaler.update()
 
@@ -303,7 +303,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
                         scaler.unscale_(optimizer)
 
                         # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                        torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
                         scaler.step(optimizer)
                         scaler.update()
 
