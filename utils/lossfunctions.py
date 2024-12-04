@@ -41,6 +41,10 @@ class DiceBCELoss(nn.Module):
         intersection = torch.sum(inputs_flatten * targets_flatten)
         union = torch.sum(inputs_flatten) + torch.sum(targets_flatten)
 
+        if torch.isnan(intersection).any() or torch.isnan(union).any():
+            print("Nan detected in loss components")
+            print(f"Intersection: {intersection}, Union: {union}")
+
         # Compute BCE Loss
         bce = self.bce_loss(inputs, targets)
 
