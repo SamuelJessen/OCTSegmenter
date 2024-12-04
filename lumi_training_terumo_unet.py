@@ -41,7 +41,6 @@ def train_model(config):
             encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
             in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
             classes=1,                      # model output channels (number of classes in your dataset)
-            activation="sigmoid",           # output activation (sigmoid for binary segmentation)
         )
         if config["freeze_encoder"]:
             for param in net.encoder.parameters():
@@ -53,7 +52,6 @@ def train_model(config):
             encoder_weights="imagenet",
             in_channels=3,
             classes=1,
-            activation="sigmoid",
         )
         if config["freeze_encoder"]:
             for param in net.encoder.parameters():

@@ -229,7 +229,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         train_dataset = OCTDataset(root_dir, indices=train_indices, train=True, is_gentuity=True, transform=transform)
 
         # Apply augmentation to the training dataset
-        sample_size = len(train_dataset_gentuity)//3
+        sample_size = len(train_dataset)//3
 
         # Instantiate the combined transform
         data_augment_transform = DataAugmentTransform()
