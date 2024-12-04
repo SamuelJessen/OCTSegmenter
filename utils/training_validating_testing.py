@@ -227,7 +227,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
             project="OCTAA/OCTSegmenter",
             api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2MGU2NGNjMi0yNWE0LTRjNzgtOGNlNS1hZDdkMjJhYzYxMWUifQ==",
             name=f"trial_{str(trial_id)}",
-            tags="terumo",
+            tags="gentuity",
         )  # your credentials
 
         run["sys/group_tags"].add([
