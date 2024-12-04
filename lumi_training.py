@@ -26,7 +26,7 @@ start_time = time.time()
 # root_dir = args.root_dir
 # print(f"Root directory: {root_dir}")
 
-root_dir = "/data/data_terumo"
+root_dir = "/data/data_terumo_smoke_test"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -38,11 +38,10 @@ transform = transforms.Compose([
 
 # Initialize model with the hyperparameters from the config
 net = smp.DeepLabV3Plus(
-    encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+    encoder_name="resnet50",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
     encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
     in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
     classes=1,                      # model output channels (number of classes in your dataset)
-    activation="sigmoid",           # output activation (sigmoid for binary segmentation)
 )
 
 # Freeze the encoder by setting requires_grad=False
@@ -120,7 +119,7 @@ def log_gpu_memory_usage(step):
     reserved_memory = torch.cuda.memory_reserved()
     print(f"[Step {step}] Reserved GPU memory: {reserved_memory / 1024**2:.2f} MB")
 
-epochs = 2
+epochs = 1
 
 torch.cuda.empty_cache()
 

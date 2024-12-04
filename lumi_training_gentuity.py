@@ -33,13 +33,12 @@ def train_model(config):
     if config["model"] == "Unet":
         # Initialize model with the hyperparameters from the config
         net = smp.Unet(
-            encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+            encoder_name="resnet50",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
             in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
             classes=1,                      # model output channels (number of classes in your dataset)
-            activation="sigmoid",           # output activation (sigmoid for binary segmentation)
         )
 
-        checkpoint_path = "/data/checkpoints/unet_resnet34.pt"
+        checkpoint_path = "/data/checkpoints/unet_resnet50.pt"
 
         model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
         net.load_state_dict(model_state)
@@ -50,13 +49,12 @@ def train_model(config):
 
     elif config["model"] == "DeepLabV3+":
         net = smp.DeepLabV3Plus(
-            encoder_name="resnet34",
+            encoder_name="resnet50",
             in_channels=3,
             classes=1,
-            activation="sigmoid",
         )
 
-        checkpoint_path = "/data/checkpoints/deeplabv3plus_resnet34.pt"
+        checkpoint_path = "/data/checkpoints/deeplabv3plus_resnet50.pt"
 
         model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
         net.load_state_dict(model_state)

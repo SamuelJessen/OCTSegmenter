@@ -106,7 +106,7 @@ class ResNetUNetWithAttention(nn.Module):
         d0 = self.final_decoder(d0)
         out = self.final_conv(d0)
 
-        return torch.sigmoid(out)
+        return out
 
 
 class UnetNoPretraining(nn.Module):
@@ -186,7 +186,7 @@ class UnetNoPretraining(nn.Module):
         # Final output layer
         out = self.final_conv(d2)
 
-        return torch.sigmoid(out)  # Assuming binary segmentation
+        return out  # Assuming binary segmentation
 
 
 class MedSAM(nn.Module):
@@ -230,4 +230,4 @@ class MedSAM(nn.Module):
             mode="bilinear",
             align_corners=False,
         )
-        return torch.sigmoid(ori_res_masks)
+        return ori_res_masks
