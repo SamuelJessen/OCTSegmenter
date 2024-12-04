@@ -192,7 +192,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
 
     #test_best_model(best_result, origin_dir)
 
-main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=1, smoke_test=True, folds=10)
+main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=50, smoke_test=False, folds=10)
 
 end_time = time.time()
 elapsed_time = end_time - start_time
