@@ -3,7 +3,7 @@
 #SBATCH --account=project_465001544
 #SBATCH --output=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.out
 #SBATCH --error=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.err
-#SBATCH --time=16:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8

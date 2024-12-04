@@ -37,7 +37,7 @@ def train_model(config):
     if config["model"] == "Unet":
         # Initialize model with the hyperparameters from the config
         net = smp.Unet(
-            encoder_name="resnet34",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+            encoder_name="resnet50",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
             encoder_weights="imagenet",     # use `imagenet` pre-trained weights for encoder initialization
             in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
             classes=1,                      # model output channels (number of classes in your dataset)
@@ -49,7 +49,7 @@ def train_model(config):
 
     elif config["model"] == "DeepLabV3+":
         net = smp.DeepLabV3Plus(
-            encoder_name="resnet34",
+            encoder_name="resnet50",
             encoder_weights="imagenet",
             in_channels=3,
             classes=1,
