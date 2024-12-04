@@ -48,7 +48,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
     epochs = config["epochs"]
     no_improvement_epochs = 0
     patience = config["patience"]
-    scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=10)
+    scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=config["lr_patience"])
 
     if config["use_amp"]:
         scaler = torch.amp.GradScaler("cuda")
@@ -252,7 +252,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         epochs = config["epochs"]
         no_improvement_epochs = 0
         patience = config["patience"]
-        scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=5)
+        scheduler = ReduceLROnPlateau(optimizer, factor=0.1, patience=config["lr_patience"])
 
         if config["use_amp"]:
             scaler = torch.amp.GradScaler("cuda")
@@ -373,16 +373,31 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
             run["dice_loss"].append(avg_dice_loss)  # Log Dice loss
             print(f"Epoch [{epoch+1}/{epochs}], Validation Loss: {val_loss:.4f}")
 
-            with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-                path = os.path.join(temp_checkpoint_dir, "checkpoint.pt")
-                torch.save(
-                    (net.state_dict(), optimizer.state_dict()), path
-                )
-                checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
-                train.report(
-                    {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},
-                    checkpoint=checkpoint,
-                )
+            if config["Model"] == "MedSam":
+                with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+                    path = os.path.join(temp_checkpoint_dir, "checkpoint.pth")
+                    checkpoint = {
+                        "model": net.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "epoch": epoch,
+                    }
+                    torch.save(checkpoint, path)
+                    checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
+                    train.report(
+                        {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},
+                        checkpoint=checkpoint,
+                    )
+            else:
+                with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+                    path = os.path.join(temp_checkpoint_dir, "checkpoint.pt")
+                    torch.save(
+                        (net.state_dict(), optimizer.state_dict()), path
+                    )
+                    checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
+                    train.report(
+                        {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},
+                        checkpoint=checkpoint,
+                    )
 
             # Check if validation loss improves
             if val_loss < best_val_loss:

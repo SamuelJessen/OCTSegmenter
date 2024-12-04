@@ -29,7 +29,7 @@ class DiceBCELoss(nn.Module):
         super(DiceBCELoss, self).__init__()
         self.bce_loss = nn.BCEWithLogitsLoss()
 
-    def forward(self, logits, targets, smooth=1):
+    def forward(self, logits, targets, smooth=1e-6):
         # Apply sigmoid to logits for Dice loss computation
         inputs = torch.sigmoid(logits)
 
@@ -45,7 +45,7 @@ class DiceBCELoss(nn.Module):
         bce = self.bce_loss(inputs, targets)
 
         # Compute Dice Loss
-        dice_loss = 1 - (2.0 * intersection + smooth) / (union + smooth)
+        dice_loss = 1 - ((2.0 * intersection + smooth) / (union + smooth))
         Dice_BCE = bce + dice_loss
 
         return Dice_BCE

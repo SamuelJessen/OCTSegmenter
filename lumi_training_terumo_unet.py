@@ -146,6 +146,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
         "freeze_encoder": tune.grid_search([False]),
         "use_amp": True,
         "cpus_per_trial": cpus_per_trial,
+        "lr_patience": 5,
     }
 
     # ASHA SCHEDULER, BUT WILL NOT BE USED
