@@ -1,4 +1,8 @@
 import os
+from pathlib import Path
+import sys
+sys.path.append(str(Path().resolve().parent))  # Add the project root to sys.path
+import os
 import argparse
 import json
 import numpy as np
