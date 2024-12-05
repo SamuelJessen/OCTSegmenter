@@ -84,16 +84,24 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                     for param in model.parameters():
                         if torch.isnan(param.grad).any():
                             print("NaN gradients detected!")
+                            nan_gradients = True
                             break
 
-                    if not nan_gradients:
-                        # Unscales the gradients of optimizer's assigned params in-place
-                        scaler.unscale_(optimizer)
+                    if nan_gradients:
+                        # Zero out gradients to prevent NaNs from affecting future batches
+                        net.zero_grad()
+                        # Skip the batch and move to the next iteration
+                        continue
 
-                        # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
-                        torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
-                        scaler.step(optimizer)
-                        scaler.update()
+                    # Unscales the gradients of optimizer's assigned params in-place
+                    scaler.unscale_(optimizer)
+
+                    # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
+                    torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
+                    scaler.step(optimizer)
+                    scaler.update()
+
+                    optimizer.zero_grad()
 
                 else:    
                     outputs = net(images, bboxes)
