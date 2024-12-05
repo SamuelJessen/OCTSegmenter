@@ -145,7 +145,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
     config = {
         "root_dir": root_dir,
         "origin_dir": origin_dir,
-        "lr": tune.choice([1e-3]),
+        "lr": tune.choice([1e-4]),
         "epochs": epochs,
         "smoke_test": smoke_test,
         "batch_size": tune.choice([6]),
@@ -158,7 +158,8 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
         "freeze_encoder": tune.grid_search([False, True]),
         "use_amp": True,
         "cpus_per_trial": cpus_per_trial,
-        "lr_patience": 2,
+        "lr_patience": 5,
+        "fold": tune.grid_search(list(range(folds))),
     }
 
     # ASHA SCHEDULER, BUT WILL NOT BE USED
@@ -176,7 +177,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
     )
 
     # Define the run config with the checkpoint config
-    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results/third_training_gentuity")
+    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results/fourth_training_gentuity")
 
     tuner = tune.Tuner(
         tune.with_resources(
@@ -204,7 +205,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
 
     #test_best_model(best_result, origin_dir)
 
-main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=1, smoke_test=False, folds=5)
+main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=50, smoke_test=False, folds=5)
 
 end_time = time.time()
 elapsed_time = end_time - start_time

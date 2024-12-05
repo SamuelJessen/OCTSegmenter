@@ -68,4 +68,4 @@ def visualize_cv_splits(metadata_df, n_splits=9):
 # Custom function to shorten trial directory names
 def trial_dirname_creator(trial):
     # Shorten the trial name to only include key parameters
-    return f"trial_{trial.trial_id}_lr={trial.config['lr']:.1e}_opt={trial.config['optimizer']}_bs={trial.config['batch_size']}_model={trial.config['model']}_freeze={trial.config['freeze_encoder']}_loss={trial.config['loss_function']}"
+    return f"trial_{trial.trial_id}_lr={trial.config['lr']:.1e}_opt={trial.config['optimizer']}_bs={trial.config['batch_size']}_model={trial.config['model']}_freeze={trial.config['freeze_encoder']}_loss={trial.config['loss_function']}_fold={trial.config['fold']}"
