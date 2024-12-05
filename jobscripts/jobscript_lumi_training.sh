@@ -14,6 +14,9 @@
 # Set MIOpen debug level to 6 for detailed logs
 #export MIOPEN_LOG_LEVEL=6
 
+# Add the OCTSegmenter directory to PYTHONPATH
+export PYTHONPATH=/mnt:$PYTHONPATH
+
 # Run the job
-srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter:/mnt -B /flash/project_465001544/:/data cotainrImage.sif python /mnt/lumi_training.py
+srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter:/mnt -B /flash/project_465001544/:/data cotainrImage.sif python /mnt/lumi_training/lumi_training.py
 

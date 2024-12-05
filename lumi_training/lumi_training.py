@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 import sys
-sys.path.append(str(Path().resolve().parent))  # Add the project root to sys.path
+#print("PYTHONPATH:", sys.path)
+#sys.path.append(str(Path().resolve().parent))  # Add the project root to sys.path
+#print("sysappend:", str(Path().resolve().parent))
 import os
 import argparse
 import json

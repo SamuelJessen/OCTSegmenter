@@ -18,6 +18,9 @@ pwd
 # List the files to confirm hello.py is present
 ls -l
 
+# Add the OCTSegmenter directory to PYTHONPATH
+export PYTHONPATH=/mnt:$PYTHONPATH
+
 # Run the job with Singularity
 # Use -B to bind the directory so that the container can access the files correctly
-srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter/scripts:/mnt -B /flash/project_465001544/:/data /projappl/project_465001544/OCTSegmenter/cotainrImage.sif python /mnt/hello.py
+srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter/scripts:/mnt -B /flash/project_465001544/:/data /projappl/project_465001544/OCTSegmenter/cotainrImage.sif python /mnt/lumi_training/hello.py

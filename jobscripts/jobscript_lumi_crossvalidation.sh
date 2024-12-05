@@ -11,6 +11,9 @@
 #SBATCH --partition=dev-g
 #SBATCH --gpus-per-task=1
 
+# Add the OCTSegmenter directory to PYTHONPATH
+export PYTHONPATH=/mnt:$PYTHONPATH
+
 # Run the job
-srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter:/mnt -B /flash/project_465001544/:/data cotainrImage.sif python /mnt/lumi_crossvalidation.py
+srun /usr/bin/singularity exec -B /projappl/project_465001544/OCTSegmenter:/mnt -B /flash/project_465001544/:/data cotainrImage.sif python /mnt/lumi_training/lumi_crossvalidation.py
 
