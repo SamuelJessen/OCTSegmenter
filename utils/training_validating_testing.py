@@ -177,9 +177,12 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
         if config["model"] == "MedSam":
             with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                 path = os.path.join(temp_checkpoint_dir, "checkpoint.pth")
-                torch.save(
-                    (net.state_dict(), optimizer.state_dict()), path
-                )
+                checkpoint = {
+                "model": net.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "epoch": epoch,
+                }
+                torch.save(checkpoint, path)
                 checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
                 train.report(
                     {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},
