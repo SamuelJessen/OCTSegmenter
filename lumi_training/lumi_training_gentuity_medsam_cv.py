@@ -21,6 +21,10 @@ from segment_anything import sam_model_registry
 os.environ["TUNE_WARN_EXCESSIVE_EXPERIMENT_CHECKPOINT_SYNC_THRESHOLD_S"] = "0"
 
 
+import time
+start_time = time.time()
+
+
 def train_model(config):
     # Extract the trial ID
     trial_id = session.get_trial_id()
@@ -34,13 +38,12 @@ def train_model(config):
         # Initialize model with the hyperparameters from the config
         net = smp.Unet(
             encoder_name="resnet50",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
+            encoder_weights=None,     # use `imagenet` pre-trained weights for encoder initialization
             in_channels=3,                  # model input channels (1 for gray-scale images, 3 for RGB, etc.)
             classes=1,                      # model output channels (number of classes in your dataset)
         )
 
-        checkpoint_path = "/data/checkpoints/unet_resnet50.pt"
-
-        model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
+        model_state, optimizer_state = torch.load("/data/best_checkpoints/first_iteration/unet_unfrozen_bs=6_dicebce.pt", weights_only=True)
         net.load_state_dict(model_state)
 
         if config["freeze_encoder"]:
@@ -50,13 +53,12 @@ def train_model(config):
     elif config["model"] == "DeepLabV3+":
         net = smp.DeepLabV3Plus(
             encoder_name="resnet50",
+            encoder_weights=None,
             in_channels=3,
             classes=1,
         )
 
-        checkpoint_path = "/data/checkpoints/deeplabv3plus_resnet50.pt"
-
-        model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
+        model_state, optimizer_state = torch.load("/data/best_checkpoints/first_iteration/deeplab_unfrozen_bs=6_dicebce.pt", weights_only=True)
         net.load_state_dict(model_state)
 
         if config["freeze_encoder"]:
@@ -64,15 +66,15 @@ def train_model(config):
                 param.requires_grad = False 
     
     elif config["model"] == "MedSam":
-        
-        checkpoint_path = "/data/checkpoints/medsam_vit_b_16_224.pth"
-
+        MedSAM_CKPT_PATH = config["origin_dir"]+"/medsam/medsam_vit_b.pth"
         sam_model = sam_model_registry['vit_b'](checkpoint=MedSAM_CKPT_PATH)
         net = MedSAM(
                 image_encoder=sam_model.image_encoder,
                 mask_decoder=sam_model.mask_decoder,
                 prompt_encoder=sam_model.prompt_encoder,
             ).to(device)
+        checkpoint = torch.load("/data/best_checkpoints/first_iteration/medsam_unfrozen_bs=6_dicebce.pth", weights_only=True)
+        net.load_state_dict(checkpoint[0])
         
         if config["freeze_encoder"]:
             # Freeze the image encoder
@@ -81,10 +83,7 @@ def train_model(config):
 
     elif config["model"] == "AttentionUnet":
         net = ResNetUNetWithAttention()
-
-        checkpoint_path = "/data/checkpoints/attention_unet_resnet34.pt"
-
-        model_state, optimizer_state = torch.load(checkpoint_path, weights_only=True)
+        model_state, optimizer_state = torch.load("/data/best_checkpoints/first_iteration/attentionUnet_unfrozen_bs=6_dicebce.pt", weights_only=True)
         net.load_state_dict(model_state)
 
         if(config["freeze_encoder"]):
@@ -106,7 +105,7 @@ def train_model(config):
     elif config["loss_function"] == "DiceBCELoss":
         criterion = DiceBCELoss()
     elif config["loss_function"] == "BCELoss":
-        criterion = nn.BCELoss()
+        criterion = nn.BCEWithLogitsLoss()
 
     transform = transforms.Compose([
         transforms.Resize((1024, 1024), interpolation=Image.NEAREST),
@@ -134,28 +133,32 @@ def train_model(config):
     train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer, criterion, net, device, trial_id)
 
 
-def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
+def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds):
     if smoke_test:
         root_dir = "/data/data_terumo_smoke_test"
         origin_dir = "/data/"
 
     else:
-        root_dir = "/data/data_terumo"
+        root_dir = "/data/data_gentuity"
         origin_dir = "/data/"
     
     config = {
         "root_dir": root_dir,
         "origin_dir": origin_dir,
-        "lr": tune.choice([1e-2]),
+        "lr": tune.choice([1e-3]),
         "epochs": epochs,
         "smoke_test": smoke_test,
-        "batch_size": tune.choice([4]),
-        "optimizer": tune.grid_search(["AdamW", "SGD", "RMSprop"]),
+        "batch_size": tune.choice([6]),
+        "optimizer": tune.choice(["AdamW"]),
         "folds": folds,
         "patience": 15,
-        "loss_function": tune.grid_search(["DiceLoss", "BCELoss", "DiceBCELoss"]),
-        "model": tune.grid_search(["AttentionUnet", "Unet", "DeepLabV3+", "MedSam"]),
-        "freeze_encoder": tune.grid_search([True, False]),
+        "loss_function": tune.grid_search(["DiceBCELoss"]),
+        #"model": tune.grid_search(["AttentionUnet", "Unet", "DeepLabV3+", "MedSam"]),
+        "model": tune.grid_search(["MedSam"]),
+        "freeze_encoder": tune.grid_search([False, True]),
+        "use_amp": True,
+        "cpus_per_trial": cpus_per_trial,
+        "lr_patience": 2,
     }
 
     # ASHA SCHEDULER, BUT WILL NOT BE USED
@@ -173,12 +176,12 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
     )
 
     # Define the run config with the checkpoint config
-    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results")
+    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results/third_training_gentuity")
 
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(train_model),
-            resources={"cpu": 8, "gpu": gpus_per_trial}
+            resources={"cpu": cpus_per_trial, "gpu": gpus_per_trial}
         ),
         tune_config=tune.TuneConfig(
             metric="dice_loss",
@@ -199,6 +202,10 @@ def main(num_samples, gpus_per_trial, epochs, smoke_test, folds):
     print("Best trial final validation accuracy: {}".format(
         best_result.metrics["accuracy"]))
 
-    test_best_model(best_result, origin_dir)
+    #test_best_model(best_result, origin_dir)
 
-main(num_samples=1, gpus_per_trial=8, epochs=2, smoke_test=True, folds=5)
+main(num_samples=1, cpus_per_trial=8, gpus_per_trial=1, epochs=50, smoke_test=False, folds=5)
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+print(f"Total time spent: {elapsed_time:.2f} seconds")

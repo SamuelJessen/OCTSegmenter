@@ -14,6 +14,7 @@ from PIL import Image
 from torchvision import transforms
 import segmentation_models_pytorch as smp
 from segment_anything import sam_model_registry
+import numpy as np
 
 
 def train_and_validate(root_dir, config, splits, fold, transform, optimizer, criterion, net, device, trial_id):
@@ -65,7 +66,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                 images, masks, _, _ = data
                 images, masks = images.to(device), masks.to(device)
 
-                    # Get image dimensions
+                # Get image dimensions
                 batch_size, _, height, width = images.size()
 
                 # Create bounding boxes that cover the whole image
@@ -81,7 +82,7 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
 
                     # Check for NaN gradients before clipping or optimizer step
                     nan_gradients = False
-                    for param in model.parameters():
+                    for param in net.parameters():
                         if torch.isnan(param.grad).any():
                             print("NaN gradients detected!")
                             nan_gradients = True
@@ -100,8 +101,6 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                     torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
                     scaler.step(optimizer)
                     scaler.update()
-
-                    optimizer.zero_grad()
 
                 else:    
                     outputs = net(images, bboxes)
@@ -194,11 +193,6 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
         if config["model"] == "MedSam":
             with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                 path = os.path.join(temp_checkpoint_dir, "checkpoint.pth")
-                # checkpoint = {
-                # "model": net.state_dict(),
-                # "optimizer": optimizer.state_dict(),
-                # "epoch": epoch,
-                # }
                 torch.save(net.state_dict(), path)
                 checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
                 train.report(
@@ -255,7 +249,8 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
             f"Freezing: {str(config['freeze_encoder'])}",
             str(config["loss_function"]), 
             str(config["optimizer"]), 
-            f"Fold: {str(fold)}"
+            f"Fold: {str(fold)}",
+            "Third_training",
         ])  # Group tags
 
         # Log configuration parameters
@@ -280,7 +275,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         # Combine the original and augmented datasets
         train_dataset = ConcatDataset([train_dataset, aug_dataset])
 
-        val_dataset = OCTDataset(root_dir, indices=val_indices, transform=transform)
+        val_dataset = OCTDataset(root_dir, indices=val_indices, train=True, is_gentuity=True, transform=transform)
 
         trainloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config["cpus_per_trial"])
         valloader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config["cpus_per_trial"])
@@ -310,7 +305,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
                     batch_size, _, height, width = images.size()
 
                     # Create bounding boxes that cover the whole image
-                    bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float32).unsqueeze(1).to(device)
+                    bboxes = torch.tensor([[0, 0, width, height]] * batch_size, dtype=torch.float16).unsqueeze(1).to(device)
 
                     optimizer.zero_grad()
 
@@ -319,6 +314,21 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
                             outputs = net(images, bboxes)
                             loss = criterion(outputs, masks)
                         scaler.scale(loss).backward()
+
+                        # Check for NaN gradients before clipping or optimizer step
+                        nan_gradients = False
+                        for param in net.parameters():
+                            if param.grad is not None and torch.isnan(param.grad).any():
+                                print("NaN gradients detected!")
+                                nan_gradients = True
+                                break
+
+                        if nan_gradients:
+                            # Zero out gradients to prevent NaNs from affecting future batches
+                            net.zero_grad()
+                            # Skip the batch and move to the next iteration
+                            continue
+
                         # Unscales the gradients of optimizer's assigned params in-place
                         scaler.unscale_(optimizer)
 
@@ -418,12 +428,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
             if config["model"] == "MedSam":
                 with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                     path = os.path.join(temp_checkpoint_dir, "checkpoint.pth")
-                    checkpoint = {
-                        "model": net.state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "epoch": epoch,
-                    }
-                    torch.save(checkpoint, path)
+                    torch.save(net.state_dict(), path)
                     checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
                     train.report(
                         {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},
