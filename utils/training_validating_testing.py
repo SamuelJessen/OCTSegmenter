@@ -78,13 +78,22 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
                         outputs = net(images, bboxes)
                         loss = criterion(outputs, masks)
                     scaler.scale(loss).backward()
-                    # Unscales the gradients of optimizer's assigned params in-place
-                    scaler.unscale_(optimizer)
 
-                    # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
-                    torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
-                    scaler.step(optimizer)
-                    scaler.update()
+                    # Check for NaN gradients before clipping or optimizer step
+                    nan_gradients = False
+                    for param in model.parameters():
+                        if torch.isnan(param.grad).any():
+                            print("NaN gradients detected!")
+                            break
+
+                    if not nan_gradients:
+                        # Unscales the gradients of optimizer's assigned params in-place
+                        scaler.unscale_(optimizer)
+
+                        # Since the gradients of optimizer's assigned params are unscaled, clips as usual:
+                        torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
+                        scaler.step(optimizer)
+                        scaler.update()
 
                 else:    
                     outputs = net(images, bboxes)
@@ -177,12 +186,12 @@ def train_and_validate(root_dir, config, splits, fold, transform, optimizer, cri
         if config["model"] == "MedSam":
             with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
                 path = os.path.join(temp_checkpoint_dir, "checkpoint.pth")
-                checkpoint = {
-                "model": net.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "epoch": epoch,
-                }
-                torch.save(checkpoint, path)
+                # checkpoint = {
+                # "model": net.state_dict(),
+                # "optimizer": optimizer.state_dict(),
+                # "epoch": epoch,
+                # }
+                torch.save(net.state_dict(), path)
                 checkpoint = Checkpoint.from_directory(temp_checkpoint_dir)
                 train.report(
                     {"loss": val_loss, "accuracy": 1 - avg_dice_loss, "dice_loss": avg_dice_loss, "fold": fold},

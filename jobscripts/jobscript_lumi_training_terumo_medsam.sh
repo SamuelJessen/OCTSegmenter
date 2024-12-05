@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=20G
-#SBATCH --partition=small-g
+#SBATCH --partition=dev-g
 #SBATCH --gpus-per-task=1
 
 # Add the OCTSegmenter directory to PYTHONPATH
