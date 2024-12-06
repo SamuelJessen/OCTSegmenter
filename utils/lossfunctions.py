@@ -30,6 +30,9 @@ class DiceBCELoss(nn.Module):
         self.bce_loss = nn.BCEWithLogitsLoss()
 
     def forward(self, logits, targets, smooth=1e-6):
+        # Compute BCE Loss
+        bce = self.bce_loss(logits, targets)
+
         # Apply sigmoid to logits for Dice loss computation
         inputs = torch.sigmoid(logits)
 
@@ -44,9 +47,6 @@ class DiceBCELoss(nn.Module):
         if torch.isnan(intersection).any() or torch.isnan(union).any():
             print("Nan detected in loss components")
             print(f"Intersection: {intersection}, Union: {union}")
-
-        # Compute BCE Loss
-        bce = self.bce_loss(inputs, targets)
 
         # Compute Dice Loss
         dice_loss = 1 - ((2.0 * intersection + smooth) / (union + smooth))
