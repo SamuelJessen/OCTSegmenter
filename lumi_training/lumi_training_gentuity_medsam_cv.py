@@ -93,7 +93,7 @@ def train_model(config):
 
     # Select optimizer based on the configuration
     if config["optimizer"] == "AdamW":
-        optimizer = optim.AdamW(net.parameters(), lr=config["lr"])
+        optimizer = optim.AdamW(net.parameters(), lr=config["lr"], weight_decay=1e-4)
     elif config["optimizer"] == "SGD":
         optimizer = optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
     elif config["optimizer"] == "RMSprop":
@@ -145,7 +145,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
     config = {
         "root_dir": root_dir,
         "origin_dir": origin_dir,
-        "lr": tune.choice([1e-5]),
+        "lr": tune.choice([1e-4]),
         "epochs": epochs,
         "smoke_test": smoke_test,
         "batch_size": tune.choice([6]),

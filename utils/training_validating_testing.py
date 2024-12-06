@@ -308,23 +308,30 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
 
                 optimizer.zero_grad()
 
-                torch.autograd.set_detect_anomaly(True)
+                torch.autograd.set_detect_anomaly(False)
 
                 if config["use_amp"]:
-                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                         outputs = net(images, bboxes)
-                        print("Output: ", outputs)
-                        # Clamp based on the standard deviation of the logits
-                        outputs_mean = outputs.mean()
-                        outputs_std = outputs.std()
-                        print("Mean: ", outputs_mean)
-                        print("Std: ", outputs_std)
-                        outputs = torch.clamp(outputs, min=outputs_mean - outputs_std/3, max=outputs_mean + outputs_std/3)
-
+                        # print("Output: ", outputs)
+                        # # Clamp based on the standard deviation of the logits
+                        # outputs_mean = outputs.mean()
+                        # outputs_std = outputs.std()
+                        # print("Mean: ", outputs_mean)
+                        # print("Std: ", outputs_std)
+                        # sigmoid =  torch.sigmoid(outputs)
+                        # print("Sigmoid: ", sigmoid)
+                        # if torch.any(sigmoid != 0):
+                        #     print("Non-zero values detected in outputs")
+                        # print("Logits range:", outputs.min().item(), outputs.max().item())
+                        # print("Sigmoid range:", torch.sigmoid(outputs).min().item(), torch.sigmoid(outputs).max().item())
+                        #outputs = torch.clamp(outputs, min=outputs_mean - outputs_std/5, max=outputs_mean + outputs_std/5)
                         #outputs = torch.clamp(outputs, min=-100, max=100)  # clamp the logits
-                        print("Clamped Output: ", outputs)
+                        #print("Clamped Output: ", outputs)
+                        #temperaturescale_outputs = outputs/1000
+                        #print("Temperature scaled outputs: ", temperaturescale_outputs)
                         loss = criterion(outputs, masks)
-                        print("Loss: ", loss.item())
+                        #print("Loss: ", loss.item())
                     scaler.scale(loss).backward()
 
                     # Check for NaN gradients before clipping or optimizer step
