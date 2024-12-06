@@ -22,7 +22,7 @@ from scipy.interpolate import interp1d
 
 ## Define these before running the script
 fold_names = ["fold1", "fold2", "fold3", "fold4", "fold5"]
-models_list_fold1 = [
+models_list_base = [
     ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/medsam_frozen_bs=6_dicebce.pth"}),
     ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/medsam_unfrozen_bs=6_dicebce.pth"}),
     ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/attentionUnet_frozen_bs=6_dicebce.pt"}),
@@ -32,27 +32,28 @@ models_list_fold1 = [
     ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/deeplab_frozen_bs=6_dicebce.pt"}),
     ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/deeplab_unfrozen_bs=6_dicebce.pt"}),
 ]
-def generate_models_list_for_folds(base_models_list, fold_names):
-    models_list_for_folds = {}
-    for fold_name in fold_names:
-        models_list_for_folds[fold_name] = [
-            (f"{model_name} {fold_name}", model_config) for model_name, model_config in base_models_list
-        ]
-    return models_list_for_folds
-
-# Generate models list for all folds
-models_list_for_folds = generate_models_list_for_folds(models_list_fold1, fold_names)
-
-
-
 csv_results_filename = "results_test_trained_on_terumo.csv"
 roc_curve_plot_filename = "roc_curve_test.png"
 boxplot_filename = "boxplot_test.png"
 save_prediction_images_dir = "output_images"  # Directory to save images with predictions
-
-
-
 os.makedirs(save_prediction_images_dir, exist_ok=True)
+
+def generate_models_list_for_folds(base_models_list, fold_names):
+    models_list_for_folds = {}
+    for fold_name in fold_names:
+        
+        for model_name, model_config in base_models_list:
+            if(model_name == "MedSAM"):
+                path_string = (f"{model_name} {fold_name}", {**model_config, "checkpoint_path": f"{model_config['checkpoint_path']}_{fold_name}.pth"})
+            else:
+                path_string = (f"{model_name} {fold_name}", {**model_config, "checkpoint_path": f"{model_config['checkpoint_path']}_{fold_name}.pt"}) 
+            
+            models_list_for_folds[fold_name] = [path_string]
+            
+    return models_list_for_folds
+
+# Generate models list for all folds
+models_list_for_folds = generate_models_list_for_folds(models_list_base, fold_names)
 
 def save_image_with_prediction_and_mask(image, predicted, mask, image_id, save_dir, model_name):
     # Convert tensors to numpy arrays
@@ -68,7 +69,7 @@ def save_image_with_prediction_and_mask(image, predicted, mask, image_id, save_d
 
 
 
-def plot_and_save_roc_curves_from_df(results_df):
+def plot_and_save_roc_curves_from_df(results_df, fold_name):
     """
     Generate and plot ROC curves for multiple models based on DataFrame containing predictions and true labels.
     """
@@ -156,7 +157,7 @@ def plot_and_save_roc_curves_from_df(results_df):
     plt.show()
 
     # Save the plot as an image
-    plt.savefig(roc_curve_plot_filename)
+    plt.savefig(roc_curve_plot_filename + fold_name)
 
 
 def test_models(models_list, save_dir):
@@ -206,14 +207,12 @@ def test_models(models_list, save_dir):
                 classes=1,
             )
         elif model_config["model"] == "MedSam":
-            sam_model = sam_model_registry['vit_b'](checkpoint="utils/medsam_vit_b.pth")
+            sam_model = sam_model_registry['vit_b'](checkpoint=model_config["checkpoint_path"])
             net = MedSAM(
                 image_encoder=sam_model.image_encoder,
                 mask_decoder=sam_model.mask_decoder,
                 prompt_encoder=sam_model.prompt_encoder,
             )
-            checkpoint = torch.load(model_config["checkpoint_path"], weights_only=True, map_location=torch.device('cpu'))
-            net.load_state_dict(checkpoint[0])  # Assuming the checkpoint has a key 'model' for the weights
     
         elif model_config["model"] == "AttentionUnet":
             net = ResNetUNetWithAttention()
@@ -289,36 +288,33 @@ def test_models(models_list, save_dir):
     return model_names, dice_coeffs, image_ids, probabilities, true_labels
 
 
+
 for fold_name in fold_names:
-    model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(f"{models_list + fold_name}", f"{save_prediction_images_dir + fold_name}")
+    model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(f"{models_list_base + fold_name}", f"{save_prediction_images_dir + fold_name}")
+    
+    results_df = pd.DataFrame({
+        "Model": model_names,
+        "Dice Score": dice_coeffs,
+        "Image ID": image_ids,
+        "Prediction value": probabilities,
+        "True label": true_labels
+    })
 
+    # Save the results to a csv file containing the model names and dice scores, and image_ids
+    results_df.to_csv(f"{csv_results_filename + fold_name}", index=False)
 
-results_df = pd.DataFrame({
-    "Model": model_names,
-    "Dice Score": dice_coeffs,
-    "Image ID": image_ids,
-    "Prediction value": probabilities,
-    "True label": true_labels
-})
+    # Generate a boxplot
+    plt.figure(figsize=(12, 8))
+    sns.boxplot(x="Model", y="Dice Score", data=results_df, hue="Model", whis=[0, 100])
+    plt.title("Performance comparison model trained on terumo data tested on gentuity testset")
+    plt.ylabel("Dice Similarity Coefficient")
+    plt.xticks(rotation=45)
+    plt.show()
 
-# Save the results to a csv file containing the model names and dice scores, and image_ids
-results_df.to_csv(csv_results_filename, index=False)
+    # Save the boxplot as an image
+    plt.savefig(f"{boxplot_filename + fold_name}")
 
-# Generate a boxplot
-plt.figure(figsize=(12, 8))
-sns.boxplot(x="Model", y="Dice Score", data=results_df, hue="Model", whis=[0, 100])
-plt.title("Performance comparison model trained on terumo data tested on gentuity testset")
-plt.ylabel("Dice Similarity Coefficient")
-plt.xticks(rotation=45)
-plt.show()
+    # Plot ROC curves for each fold
+    plot_and_save_roc_curves_from_df(results_df, fold_name)
 
-# Save the boxplot as an image
-plt.savefig(boxplot_filename)
-
-if(running_on_all_folds):
-    for(i, fold_name) in enumerate(fold_names):
-        fold_df = results_df[results_df["Model"] == fold_name]
-
-        plot_and_save_roc_curves_from_df(fold_df)
-else:
-    plot_and_save_roc_curves_from_df(results_df)
+    
