@@ -249,7 +249,7 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
         str(config["loss_function"]), 
         str(config["optimizer"]), 
         f"Fold: {str(config['fold'])}",
-        "Fourth_training",
+        "Fifth_training",
     ])  # Group tags
 
     # Log configuration parameters
