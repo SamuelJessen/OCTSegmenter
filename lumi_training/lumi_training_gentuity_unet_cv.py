@@ -177,7 +177,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
     )
 
     # Define the run config with the checkpoint config
-    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results/fourth_training_gentuity")
+    run_config = RunConfig(checkpoint_config=checkpoint_config, storage_path="/data/ray_results/fifth_training_gentuity")
 
     tuner = tune.Tuner(
         tune.with_resources(
