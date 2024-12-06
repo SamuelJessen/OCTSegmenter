@@ -5,6 +5,12 @@ from matplotlib.colors import ListedColormap
 
 def plot_cv_indices(cv, X, y, ax, n_splits, lw=10, cmap_data="tab10"):
     """Create a sample plot for indices of a cross-validation object."""
+
+    # Define a custom colormap excluding #ff7f0e
+    original_colors = plt.cm.tab10.colors  # Default tab10 colormap colors
+    filtered_colors = [color for color in original_colors if color != (255/255, 127/255, 14/255)]  # Remove #ff7f0e
+    custom_cmap = ListedColormap(filtered_colors)
+
     # Generate the training/testing visualizations for each CV split
     for ii, (tr, tt) in enumerate(cv.split(X=X, y=y)):
         # Fill in indices with the training/test groups
@@ -17,21 +23,21 @@ def plot_cv_indices(cv, X, y, ax, n_splits, lw=10, cmap_data="tab10"):
         ax.scatter(
             range(len(indices)),
             [ii + 0.5] * len(indices),
-            c=np.where(indices == 0, '#add8e6', '#ff4500'),  # Set light blue and redder orange
+            c=np.where(indices == 0, '#add8e6', '#ff7f0e'),  # Set light blue and redder orange
             marker="_",
             lw=lw,
         )
 
     # Plot the unique_id at the end (instead of class labels)
     ax.scatter(
-        range(len(X)), [ii + 1.5] * len(X), c=y, marker="_", lw=lw, cmap=cmap_data
+        range(len(X)), [ii + 1.5] * len(X), c=y, marker="_", lw=lw, cmap=custom_cmap
     )
 
     # Add a legend for train and validation splits
     from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], color='#add8e6', lw=4, label='Train'),
-        Line2D([0], [0], color='#ff4500', lw=4, label='Validation'),
+        Line2D([0], [0], color='#ff7f0e', lw=4, label='Validation'),
     ]
     ax.legend(handles=legend_elements, loc='upper right', fontsize=12)
 
@@ -45,7 +51,7 @@ def plot_cv_indices(cv, X, y, ax, n_splits, lw=10, cmap_data="tab10"):
         ylim=[n_splits + 1.2, -0.2],
         xlim=[0, len(X)],
     )
-    ax.set_title(f"{type(cv).__name__} Cross-Validation", fontsize=15)
+    ax.set_title(f"{type(cv).__name__} Cross-Validation", fontsize=12)
     return ax
 
 # Visualize splits
