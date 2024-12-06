@@ -308,25 +308,32 @@ def train_and_validate_cv(root_dir, config, splits, folds, transform, optimizer,
 
                 optimizer.zero_grad()
 
+                torch.autograd.set_detect_anomaly(True)
+
                 if config["use_amp"]:
                     with torch.autocast(device_type="cuda", dtype=torch.float16):
                         outputs = net(images, bboxes)
+                        print("Output: ", outputs)
+                        # Clamp based on the standard deviation of the logits
+                        outputs_mean = outputs.mean()
+                        outputs_std = outputs.std()
+                        print("Mean: ", outputs_mean)
+                        print("Std: ", outputs_std)
+                        outputs = torch.clamp(outputs, min=outputs_mean - outputs_std/3, max=outputs_mean + outputs_std/3)
+
+                        #outputs = torch.clamp(outputs, min=-100, max=100)  # clamp the logits
+                        print("Clamped Output: ", outputs)
                         loss = criterion(outputs, masks)
+                        print("Loss: ", loss.item())
                     scaler.scale(loss).backward()
 
                     # Check for NaN gradients before clipping or optimizer step
-                    nan_gradients = False
                     for param in net.parameters():
                         if param.grad is not None and torch.isnan(param.grad).any():
                             print("NaN gradients detected!")
-                            nan_gradients = True
+                            # Zero out gradients to prevent NaNs from affecting future batches
+                            #net.zero_grad()
                             break
-
-                    if nan_gradients:
-                        # Zero out gradients to prevent NaNs from affecting future batches
-                        net.zero_grad()
-                        # Skip the batch and move to the next iteration
-                        continue
 
                     # Unscales the gradients of optimizer's assigned params in-place
                     scaler.unscale_(optimizer)

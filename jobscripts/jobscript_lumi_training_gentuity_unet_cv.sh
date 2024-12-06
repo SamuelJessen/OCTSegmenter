@@ -7,7 +7,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=20G
+#SBATCH --mem=64G
 #SBATCH --partition=small-g
 #SBATCH --gpus-per-task=1
 

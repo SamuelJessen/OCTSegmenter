@@ -145,7 +145,7 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
     config = {
         "root_dir": root_dir,
         "origin_dir": origin_dir,
-        "lr": tune.choice([1e-4]),
+        "lr": tune.choice([1e-5]),
         "epochs": epochs,
         "smoke_test": smoke_test,
         "batch_size": tune.choice([6]),

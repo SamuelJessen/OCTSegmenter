@@ -3,12 +3,12 @@
 #SBATCH --account=project_465001544
 #SBATCH --output=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.out
 #SBATCH --error=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.err
-#SBATCH --time=40:00:00
+#SBATCH --time=00:05:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=20G
-#SBATCH --partition=small-g
+#SBATCH --mem=50G
+#SBATCH --partition=dev-g
 #SBATCH --gpus-per-task=1
 
 # Add the OCTSegmenter directory to PYTHONPATH
