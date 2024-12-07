@@ -3,11 +3,11 @@
 #SBATCH --account=project_465001544
 #SBATCH --output=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.out
 #SBATCH --error=/projappl/project_465001544/OCTSegmenter/slurm_logs/slurm-%j.err
-#SBATCH --time=15:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=30G
+#SBATCH --mem=50G
 #SBATCH --partition=small-g
 #SBATCH --gpus-per-task=1
 

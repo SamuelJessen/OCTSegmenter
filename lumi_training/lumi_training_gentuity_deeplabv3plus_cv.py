@@ -155,11 +155,11 @@ def main(num_samples, cpus_per_trial, gpus_per_trial, epochs, smoke_test, folds)
         "loss_function": tune.grid_search(["DiceBCELoss"]),
         #"model": tune.grid_search(["AttentionUnet", "Unet", "DeepLabV3+", "MedSam"]),
         "model": tune.grid_search(["DeepLabV3+"]),
-        "freeze_encoder": tune.grid_search([False, True]),
+        "freeze_encoder": tune.grid_search([True]),
         "use_amp": True,
         "cpus_per_trial": cpus_per_trial,
         "lr_patience": 5,
-        "fold": tune.grid_search(list(range(folds))),
+        "fold": tune.grid_search([1,2,3,4]),
     }
 
     # ASHA SCHEDULER, BUT WILL NOT BE USED
