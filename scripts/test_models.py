@@ -20,40 +20,71 @@ import torchmetrics
 from sklearn.metrics import roc_curve, auc
 from scipy.interpolate import interp1d
 
+os.environ["DATA_PATH"] = "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning"
+
+DATA_DIR = os.getenv("DATA_PATH", "/data")
+one_drive_path = "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning"
+
 ## Define these before running the script
-fold_names = ["fold1", "fold2", "fold3", "fold4", "fold5"]
-models_list_base = [
-    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/medsam_frozen_bs=6_dicebce.pth"}),
-    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/medsam_unfrozen_bs=6_dicebce.pth"}),
-    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/attentionUnet_frozen_bs=6_dicebce.pt"}),
-    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/attentionUnet_unfrozen_bs=6_dicebce.pt"}),
-    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/unet_frozen_bs=6_dicebce.pt"}),
-    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/unet_unfrozen_bs=6_dicebce.pt"}),
-    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/deeplab_frozen_bs=6_dicebce.pt"}),
-    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": "/Users/studiesamuel/Library/CloudStorage/OneDrive-Aarhusuniversitet/Deep Learning/checkpoints/deeplab_unfrozen_bs=6_dicebce.pt"}),
+fold_names = ["fold0", "fold1", "fold2", "fold3", "fold4"]
+models_list_fold0 = [
+    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00005_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=True_loss=DiceBCELoss_fold=0/checkpoint_000035/checkpoint.pth"}),
+    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00000_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=False_loss=DiceBCELoss_fold=0/checkpoint_000034/checkpoint.pth"}),
+    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00005_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=True_loss=DiceBCELoss_fold=0/checkpoint_000039/checkpoint.pt"}),
+    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00000_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=False_loss=DiceBCELoss_fold=0/checkpoint_000034/checkpoint.pt"}),
+    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00005_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=True_loss=DiceBCELoss_fold=0/checkpoint_000049/checkpoint.pt"}),
+    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00000_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=False_loss=DiceBCELoss_fold=0/checkpoint_000049/checkpoint.pt"}),
+    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00005_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=True_loss=DiceBCELoss_fold=0/checkpoint_000049/checkpoint.pt"}),
+    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00000_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=False_loss=DiceBCELoss_fold=0/checkpoint_000036/checkpoint.pt"}),
 ]
-csv_results_filename = "results_test_trained_on_terumo.csv"
-roc_curve_plot_filename = "roc_curve_test.png"
-boxplot_filename = "boxplot_test.png"
-save_prediction_images_dir = "output_images"  # Directory to save images with predictions
+models_list_fold1 = [
+    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00006_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=True_loss=DiceBCELoss_fold=1/checkpoint_000020/checkpoint.pth"}),
+    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00001_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=False_loss=DiceBCELoss_fold=1/checkpoint_000026/checkpoint.pth"}),
+    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00006_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=True_loss=DiceBCELoss_fold=1/checkpoint_000049/checkpoint.pt"}),
+    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00001_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=False_loss=DiceBCELoss_fold=1/checkpoint_000048/checkpoint.pt"}),
+    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00006_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=True_loss=DiceBCELoss_fold=1/checkpoint_000049/checkpoint.pt"}),
+    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00001_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=False_loss=DiceBCELoss_fold=1/checkpoint_000043/checkpoint.pt"}),
+    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-07_21-15-02/trial_9583d_00000_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=True_loss=DiceBCELoss_fold=1/checkpoint_000049/checkpoint.pt"}),
+    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00001_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=False_loss=DiceBCELoss_fold=1/checkpoint_000032/checkpoint.pt"}),
+]
+models_list_fold2 = [
+    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00007_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=True_loss=DiceBCELoss_fold=2/checkpoint_000025/checkpoint.pth"}),
+    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00002_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=False_loss=DiceBCELoss_fold=2/checkpoint_000024/checkpoint.pth"}),
+    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00007_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=True_loss=DiceBCELoss_fold=2/checkpoint_000046/checkpoint.pt"}),
+    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00002_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=False_loss=DiceBCELoss_fold=2/checkpoint_000033/checkpoint.pt"}),
+    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00007_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=True_loss=DiceBCELoss_fold=2/checkpoint_000049/checkpoint.pt"}),
+    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00002_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=False_loss=DiceBCELoss_fold=2/checkpoint_000042/checkpoint.pt"}),
+    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-07_21-15-02/trial_9583d_00001_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=True_loss=DiceBCELoss_fold=2/checkpoint_000041/checkpoint.pt"}),
+    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00002_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=False_loss=DiceBCELoss_fold=2/checkpoint_000037/checkpoint.pt"}),
+]
+models_list_fold3 = [
+    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00008_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=True_loss=DiceBCELoss_fold=3/checkpoint_000026/checkpoint.pth"}),
+    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00003_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=False_loss=DiceBCELoss_fold=3/checkpoint_000037/checkpoint.pth"}),
+    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00008_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=True_loss=DiceBCELoss_fold=3/checkpoint_000038/checkpoint.pt"}),
+    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00003_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=False_loss=DiceBCELoss_fold=3/checkpoint_000037/checkpoint.pt"}),
+    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00008_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=True_loss=DiceBCELoss_fold=3/checkpoint_000049/checkpoint.pt"}),
+    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00003_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=False_loss=DiceBCELoss_fold=3/checkpoint_000032/checkpoint.pt"}),
+    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-07_21-15-02/trial_9583d_00002_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=True_loss=DiceBCELoss_fold=3/checkpoint_000049/checkpoint.pt"}),
+    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00003_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=False_loss=DiceBCELoss_fold=3/checkpoint_000039/checkpoint.pt"}),
+]
+models_list_fold4 = [
+    ("MedSAM Frozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00009_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=True_loss=DiceBCELoss_fold=4/checkpoint_000049/checkpoint.pth"}),
+    ("MedSAM UnFrozen", {"model": "MedSam", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_21-26-58/trial_1662d_00004_lr=1.0e-04_opt=AdamW_bs=6_model=MedSam_freeze=False_loss=DiceBCELoss_fold=4/checkpoint_000037/checkpoint.pth"}),
+    ("AttentionUnet Frozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00009_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=True_loss=DiceBCELoss_fold=4/checkpoint_000049/checkpoint.pt"}),
+    ("AttentionUnet UnFrozen", {"model": "AttentionUnet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-31-06/trial_5e719_00004_lr=1.0e-04_opt=AdamW_bs=6_model=AttentionUnet_freeze=False_loss=DiceBCELoss_fold=4/checkpoint_000044/checkpoint.pt"}),
+    ("U-Net Frozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00009_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=True_loss=DiceBCELoss_fold=4/checkpoint_000049/checkpoint.pt"}),
+    ("U-Net UnFrozen", {"model": "Unet", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_17-16-42/trial_1ed43_00004_lr=1.0e-04_opt=AdamW_bs=6_model=Unet_freeze=False_loss=DiceBCELoss_fold=4/checkpoint_000042/checkpoint.pt"}),
+    ("DeepLabV3+ Frozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-07_21-15-02/trial_9583d_00003_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=True_loss=DiceBCELoss_fold=4/checkpoint_000049/checkpoint.pt"}),
+    ("DeepLabV3+ UnFrozen", {"model": "DeepLabV3+", "checkpoint_path": f"{one_drive_path}/data/ray_results/fifth_training_gentuity/train_model_2024-12-06_15-54-04/trial_93b3f_00004_lr=1.0e-04_opt=AdamW_bs=6_model=DeepLabV3+_freeze=False_loss=DiceBCELoss_fold=4/checkpoint_000049/checkpoint.pt"}),
+]
+all_models_list = [models_list_fold0, models_list_fold1, models_list_fold2, models_list_fold3, models_list_fold4]
+
+test_results_dir_path = f"{one_drive_path}/data/test_results"
+os.makedirs(test_results_dir_path, exist_ok=True)
+csv_results_filename = test_results_dir_path + "/results_test_trained_on_gentuity"
+boxplot_filename = test_results_dir_path + "/boxplot_test_trained_on_gentuity"
+save_prediction_images_dir = test_results_dir_path + "/output_images"  # Directory to save images with predictions
 os.makedirs(save_prediction_images_dir, exist_ok=True)
-
-def generate_models_list_for_folds(base_models_list, fold_names):
-    models_list_for_folds = {}
-    for fold_name in fold_names:
-        
-        for model_name, model_config in base_models_list:
-            if(model_name == "MedSAM"):
-                path_string = (f"{model_name} {fold_name}", {**model_config, "checkpoint_path": f"{model_config['checkpoint_path']}_{fold_name}.pth"})
-            else:
-                path_string = (f"{model_name} {fold_name}", {**model_config, "checkpoint_path": f"{model_config['checkpoint_path']}_{fold_name}.pt"}) 
-            
-            models_list_for_folds[fold_name] = [path_string]
-            
-    return models_list_for_folds
-
-# Generate models list for all folds
-models_list_for_folds = generate_models_list_for_folds(models_list_base, fold_names)
 
 def save_image_with_prediction_and_mask(image, predicted, mask, image_id, save_dir, model_name):
     # Convert tensors to numpy arrays
@@ -67,97 +98,73 @@ def save_image_with_prediction_and_mask(image, predicted, mask, image_id, save_d
     plt.imsave(predicted_path, predicted_np, cmap="gray")
     plt.imsave(mask_path, mask_np, cmap="gray")
 
-
-
-def plot_and_save_roc_curves_from_df(results_df, fold_name):
+def plot_roc_curves_across_folds(results_df):
     """
-    Generate and plot ROC curves for multiple models based on DataFrame containing predictions and true labels.
+    Plot and save ROC curves for a single model evaluated across multiple folds.
+    Parameters:
+        results_df (DataFrame): Contains columns 'Model', 'Fold', 'True label', and 'Prediction value'.
+                                Each row represents predictions and labels for a fold.
     """
-    # Define the number of points on the FPR axis
     mean_fpr = np.linspace(0, 1, 100)
-    tprs = []  # True Positive Rates for each model
-    aucs = []  # AUCs for each model
+    tprs, aucs = [], []
     
-    # Prepare a plot
+    # Prepare plot
     fig, ax = plt.subplots(figsize=(10, 8))
-
-    # Get unique model names
-    model_names = results_df['Model'].unique()
-
-    for model_name in model_names:
-        print(f"Processing model: {model_name}")
+    model_name = results_df['Model'].iloc[0]
+    folds = results_df['Fold'].unique()
+    
+    for fold in folds:
+        print(f"Processing Fold: {fold} for Model: {model_name}")
         
-        # Filter data for the current model
-        model_data = results_df[results_df['Model'] == model_name]
+        # Filter data for the current fold
+        fold_data = results_df[results_df['Fold'] == fold]
+        true_labels = np.concatenate(fold_data['True label'].to_numpy())
+        predictions = np.concatenate(fold_data['Prediction value'].to_numpy())
         
-        # Initialize empty lists to store true labels and predictions
-        true_labels = []
-        predictions = []
-
-        # Iterate through the data rows and get arrays directly
-        for _, row in model_data.iterrows():
-            true_label = row['True label']  # This is already an array
-            prediction = row['Prediction value']  # This is already an array
-
-            # Ensure that true_label contains only 0 or 1 (binary classification)
-            true_label = (true_label > 0).astype(int)  # Convert to binary 0 or 1
-
-            # Append the arrays to the lists
-            true_labels.append(true_label)
-            predictions.append(prediction)
-
-        # Convert the lists of arrays into single flattened arrays
-        true_labels = np.concatenate(true_labels)
-        predictions = np.concatenate(predictions)
+        # Ensure binary classification for true labels
+        true_labels = (true_labels > 0).astype(int)
         
         # Compute ROC curve and AUC
         fpr, tpr, _ = roc_curve(true_labels, predictions)
         roc_auc = auc(fpr, tpr)
         aucs.append(roc_auc)
-
-        # Plot the individual ROC curve
-        ax.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.4f})")
-
-        # Interpolate TPR for mean ROC calculation
+        
+        # Plot ROC for this fold
+        ax.plot(fpr, tpr, label=f"Fold {fold} (AUC = {roc_auc:.4f})")
+        
+        # Interpolate TPR for mean calculations
         tpr_interp = interp1d(fpr, tpr, bounds_error=False, fill_value=0)(mean_fpr)
-        tpr_interp[0] = 0.0  # Ensure the curve starts from (0,0)
+        tpr_interp[0] = 0.0  # Ensure the curve starts at (0, 0)
         tprs.append(tpr_interp)
-
-    # Calculate mean TPR and variability when there are multiple models
-    if len(tprs) > 1:
-        mean_tpr = np.mean(tprs, axis=0)
-    else:
-        # If only one model, use that TPR directly
-        mean_tpr = tprs[0]
-
-    mean_tpr[-1] = 1.0  # Ensure that the last TPR is 1.0
-
+    
+    # Compute and plot the mean ROC curve
+    mean_tpr = np.mean(tprs, axis=0)
+    mean_tpr[-1] = 1.0  # Ensure the curve ends at (1, 1)
     mean_auc = auc(mean_fpr, mean_tpr)
     std_auc = np.std(aucs)
-
-    # Plot the mean ROC curve
     ax.plot(mean_fpr, mean_tpr, color='b', label=f"Mean ROC (AUC = {mean_auc:.4f} ± {std_auc:.4f})", lw=2, alpha=0.8)
-
-    # Plot variability as shaded region
-    if len(tprs) > 1:  # Only plot variability if multiple models are present
+    
+    # Add variability shading if multiple folds exist
+    if len(tprs) > 1:
         std_tpr = np.std(tprs, axis=0)
         tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
         tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
         ax.fill_between(mean_fpr, tprs_lower, tprs_upper, color='grey', alpha=0.2, label="± 1 std. dev.")
-
-    # Finalize the plot
+    
+    # Finalize plot
     ax.plot([0, 1], [0, 1], 'r--', label="Chance")
     ax.set(
         xlabel="False Positive Rate",
         ylabel="True Positive Rate",
-        title="Mean ROC Curve with Variability"
+        title=f"ROC Curve for {model_name} Across Folds"
     )
     ax.legend(loc="lower right")
     plt.grid()
     plt.show()
+    
+    # Save plot
+    plt.savefig(f"{model_name}_roc_curve.png")
 
-    # Save the plot as an image
-    plt.savefig(roc_curve_plot_filename + fold_name)
 
 
 def test_models(models_list, save_dir):
@@ -177,7 +184,7 @@ def test_models(models_list, save_dir):
         transforms.ToTensor(),
     ])
 
-    test_dataset = OCTDataset("/data/data_gentuity",
+    test_dataset = OCTDataset(f"{one_drive_path}/data_gentuity",
         transform=transform,
         train=False,
         is_gentuity=True,
@@ -290,31 +297,51 @@ def test_models(models_list, save_dir):
 
 
 for fold_name in fold_names:
-    model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(f"{models_list_base + fold_name}", f"{save_prediction_images_dir + fold_name}")
+    if(fold_name == "fold0"):
+        model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(models_list_fold0, f"{save_prediction_images_dir + fold_name}")
+    elif(fold_name == "fold1"):
+        model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(models_list_fold1, f"{save_prediction_images_dir + fold_name}")
+    elif(fold_name == "fold2"):
+        model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(models_list_fold2, f"{save_prediction_images_dir + fold_name}")
+    elif(fold_name == "fold3"):
+        model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(models_list_fold3, f"{save_prediction_images_dir + fold_name}")
+    elif(fold_name == "fold4"):
+        model_names, dice_coeffs, image_ids, probabilities, true_labels = test_models(models_list_fold4, f"{save_prediction_images_dir + fold_name}")
     
     results_df = pd.DataFrame({
         "Model": model_names,
         "Dice Score": dice_coeffs,
         "Image ID": image_ids,
         "Prediction value": probabilities,
-        "True label": true_labels
+        "True label": true_labels,
+        "Fold": fold_name
     })
 
     # Save the results to a csv file containing the model names and dice scores, and image_ids
-    results_df.to_csv(f"{csv_results_filename + fold_name}", index=False)
+    results_df.to_csv(f"{csv_results_filename + fold_name}.csv", index=False)
 
     # Generate a boxplot
     plt.figure(figsize=(12, 8))
     sns.boxplot(x="Model", y="Dice Score", data=results_df, hue="Model", whis=[0, 100])
-    plt.title("Performance comparison model trained on terumo data tested on gentuity testset")
+    plt.title(f"Performance comparison train iteration 2 {fold_name}")
     plt.ylabel("Dice Similarity Coefficient")
     plt.xticks(rotation=45)
     plt.show()
 
     # Save the boxplot as an image
-    plt.savefig(f"{boxplot_filename + fold_name}")
+    plt.savefig(f"{boxplot_filename + fold_name}.png")
 
-    # Plot ROC curves for each fold
-    plot_and_save_roc_curves_from_df(results_df, fold_name)
+
+# Create a big dataframe with all the results from all folds
+results_dfs = []
+for fold_name in fold_names:
+    results_df = pd.read_csv(f"{csv_results_filename + fold_name}.csv")
+    results_dfs.append(results_df)
+
+# Create 8 dataframes with the results of each model
+model_dfs = {}
+for model_name in results_df['Model'].unique():
+    model_dfs[model_name] = pd.concat([df[df['Model'] == model_name] for df in results_dfs], ignore_index=True)
+    plot_roc_curves_across_folds(model_dfs[model_name])
 
     
