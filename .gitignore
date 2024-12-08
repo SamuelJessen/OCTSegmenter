@@ -15,3 +15,21 @@ data*/
 
 # Ignore pycache
 *.pyc
+
+# Ignore .sif
+*.sif
+
+# Ignore .out
+.out
+
+# Ignore files starting with slurm-
+slurm-*
+
+# Ignore folders named models_local
+models_local/
+
+# Ignore folders named output_images
+output_images/
+
+# Ignore medsam_vit_b.pth file
+medsam_vit_b.pth
