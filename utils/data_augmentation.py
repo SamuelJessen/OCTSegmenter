@@ -1,4 +1,6 @@
 from torchvision.transforms import v2
+from PIL import Image
+
 
 class SynchronizedRandomRotation:
     def __init__(self, degrees):
@@ -16,16 +18,20 @@ class SynchronizedRandomRotation:
 
 
 class DataAugmentTransform:
-    def __init__(self, tensor_transform, color_transform, random_rotation):
+    def __init__(
+        self, tensor_transform=None, color_transform=None, random_rotation=None
+    ):
         # Augmentation transform composition
-        tensor_transform = v2.Compose([
-            v2.Resize((256, 256), interpolation=Image.NEAREST),
-            v2.ToTensor(),
-        ])
+        tensor_transform = v2.Compose(
+            [
+                v2.Resize((256, 256), interpolation=Image.NEAREST),
+                v2.ToTensor(),
+            ]
+        )
 
-        color_transform = v2.Compose([
-            v2.ColorJitter(contrast=0.5, brightness=0.5, saturation=None, hue=None)
-        ])
+        color_transform = v2.Compose(
+            [v2.ColorJitter(contrast=0.5, brightness=0.5, saturation=None, hue=None)]
+        )
 
         random_rotation = SynchronizedRandomRotation(degrees=180)
 
